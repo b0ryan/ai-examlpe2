@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    container_name: lottery_app
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: jdbc:postgresql://db:5432/lottery
+      JWT_SECRET: super-secret-key
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+    depends_on:
+      - db
+    command: sh -c "java -jar app.jar"
+
+  db:
+    image: postgres:16
+    container_name: lottery_db
+    restart: always
+    environment:
+      POSTGRES_DB: lottery
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
