@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      DATABASE_URL: jdbc:postgresql://db:5432/lottery
+      DATABASE_URL: jdbc:postgresql://db:5432/lottery?user=postgres&password=postgres
       JWT_SECRET: super-secret-key
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: admin123
