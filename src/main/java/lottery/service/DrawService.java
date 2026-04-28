@@ -57,9 +57,6 @@ public class DrawService {
     }
 
     public List<Integer> generateResultForDraw(long drawId) throws SQLException {
-        List<Integer> combo = LotteryNumbers.generateWinningCombo();
-        String comboText = LotteryNumbers.joinNumbers(combo);
-
         try (Connection c = Db.conn(config)) {
             c.setAutoCommit(false);
             try {
@@ -73,10 +70,26 @@ public class DrawService {
                     }
                     status = rs.getString("status");
                 }
+
+                // Idempotency: if result already exists, return it without reprocessing tickets.
+                try (PreparedStatement existingResultPs = c.prepareStatement(
+                        "select winning_numbers from draw_results where draw_id=?")) {
+                    existingResultPs.setLong(1, drawId);
+                    ResultSet existingRs = existingResultPs.executeQuery();
+                    if (existingRs.next()) {
+                        List<Integer> existing = LotteryNumbers.parseNumbers(existingRs.getString("winning_numbers"));
+                        c.commit();
+                        return existing;
+                    }
+                }
+
                 if (!"ACTIVE".equals(status)) {
                     c.rollback();
-                    throw new IllegalStateException("Draw is not active");
+                    throw new IllegalStateException("Draw is not active and has no result");
                 }
+
+                List<Integer> combo = LotteryNumbers.generateWinningCombo();
+                String comboText = LotteryNumbers.joinNumbers(combo);
 
                 try (PreparedStatement insertResult = c.prepareStatement(
                         "insert into draw_results(draw_id, winning_numbers) values(?, ?)")) {
