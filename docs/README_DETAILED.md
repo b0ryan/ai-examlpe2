@@ -59,6 +59,48 @@
 - draw: `ACTIVE`, `COMPLETED`
 - ticket: `PENDING`, `WIN`, `LOSE`
 
+### Структура таблиц PostgreSQL
+
+#### `users`
+- `id` `bigserial` PK
+- `email` `text` NOT NULL UNIQUE
+- `password_hash` `text` NOT NULL
+- `role` `text` NOT NULL CHECK (`ADMIN` / `USER`)
+- `created_at` `timestamp` DEFAULT `now()`
+
+#### `draws`
+- `id` `bigserial` PK
+- `title` `text` NOT NULL
+- `status` `text` NOT NULL CHECK (`ACTIVE` / `COMPLETED`)
+- `created_by` `bigint` NOT NULL FK -> `users(id)` (`on delete restrict`)
+- `created_at` `timestamp` DEFAULT `now()`
+
+#### `draw_results`
+- `id` `bigserial` PK
+- `draw_id` `bigint` NOT NULL UNIQUE FK -> `draws(id)` (`on delete cascade`)
+- `winning_numbers` `text` NOT NULL
+- `created_at` `timestamp` DEFAULT `now()`
+
+#### `tickets`
+- `id` `bigserial` PK
+- `user_id` `bigint` NOT NULL FK -> `users(id)` (`on delete cascade`)
+- `draw_id` `bigint` NOT NULL FK -> `draws(id)` (`on delete cascade`)
+- `numbers` `text` NOT NULL
+- `status` `text` NOT NULL CHECK (`PENDING` / `WIN` / `LOSE`)
+- `created_at` `timestamp` DEFAULT `now()`
+
+#### `payments` (подготовлено, пока не используется в API)
+- `id` `bigserial` PK
+- `ticket_id` `bigint` UNIQUE FK -> `tickets(id)` (`on delete cascade`)
+- `amount` `numeric(10,2)` NOT NULL
+- `status` `text` NOT NULL CHECK (`PAID` / `FAILED`)
+- `created_at` `timestamp` DEFAULT `now()`
+
+### Связи между таблицами
+- один `user` может создать много `draws` и иметь много `tickets`;
+- у одного `draw` может быть много `tickets`, но только один `draw_results`;
+- у одного `ticket` может быть максимум один `payment`.
+
 ## 6) Идемпотентность генерации результата
 
 `POST /draws/generate-result` реализован идемпотентно:
