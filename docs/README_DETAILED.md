@@ -105,13 +105,6 @@ java -jar target/basic-lottery-1.0.0-jar-with-dependencies.jar
 docker compose up --build -d
 ```
 
-Если меняли креды Postgres, пересоздайте volume:
-
-```bash
-docker compose down -v
-docker compose up --build -d
-```
-
 Проверка:
 
 ```bash

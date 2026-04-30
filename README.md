@@ -41,13 +41,3 @@ curl http://localhost:3000/health
 - `GET /tickets/check?ticketId={ticketId}`
 - `GET /health`
 
-## Важно
-
-- Генерация результата тиража идемпотентна: повторный вызов для того же `drawId`
-  возвращает уже сохраненную выигрышную комбинацию.
-- Для корректного применения новых кредов Postgres используйте:
-
-```bash
-docker compose down -v
-docker compose up --build -d
-```
