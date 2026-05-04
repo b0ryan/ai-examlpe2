@@ -88,3 +88,97 @@
 [avpodstrechnyy@pc-r-etcd01n1 ~]$
 ```
 
+### 4. Настроена архивация wal-файлов СУБД в расположение `/backup/wal_archive`
+
+Пример для первого сервера:
+
+```shell
+[postgres@mph-r-pg01n1 pg_log]$ psql
+psql (18.3)
+Введите "help", чтобы получить справку.
+
+postgres=# select * from pg_stat_archiver \gx
+-[ RECORD 1 ]------+---------------------------------
+archived_count     | 34
+last_archived_wal  | 000000200000000000000049.partial
+last_archived_time | 2026-05-04 16:59:23.600107+03
+failed_count       | 0
+last_failed_wal    |
+last_failed_time   |
+stats_reset        | 2026-05-04 15:16:59.057083+03
+
+postgres=# select pg_switch_wal();
+ pg_switch_wal
+---------------
+ 0/49000480
+(1 строка)
+
+postgres=# select * from pg_stat_archiver \gx
+-[ RECORD 1 ]------+------------------------------
+archived_count     | 35
+last_archived_wal  | 000000210000000000000049
+last_archived_time | 2026-05-04 17:13:24.068641+03
+failed_count       | 0
+last_failed_wal    |
+last_failed_time   |
+stats_reset        | 2026-05-04 15:16:59.057083+03
+
+postgres=#
+\q
+[postgres@mph-r-pg01n1 pg_log]$ cd /backup/
+[postgres@mph-r-pg01n1 backup]$ ls -l
+итого 24
+drwx------. 2 postgres postgres  4096 мая  1 21:29 basebackup_archive
+drwx------. 2 postgres postgres 16384 мар 31 23:23 lost+found
+drwx------. 2 postgres postgres  4096 мая  4 17:13 wal_archive
+[postgres@mph-r-pg01n1 backup]$ ls -l wal_archive/ | tail
+-rw-------. 1 postgres postgres 16777216 мая  4 16:14 0000001C0000000000000046.partial
+-rw-------. 1 postgres postgres     1178 мая  4 16:00 0000001C.history
+-rw-------. 1 postgres postgres 16777216 мая  4 16:17 0000001D0000000000000046
+-rw-------. 1 postgres postgres     1222 мая  4 16:14 0000001D.history
+-rw-------. 1 postgres postgres 16777216 мая  4 16:37 0000001E0000000000000048.partial
+-rw-------. 1 postgres postgres 16777216 мая  4 16:42 0000001F0000000000000048
+-rw-------. 1 postgres postgres     1310 мая  4 16:37 0000001F.history
+-rw-------. 1 postgres postgres 16777216 мая  4 16:59 000000200000000000000049.partial
+-rw-------. 1 postgres postgres 16777216 мая  4 17:13 000000210000000000000049
+-rw-------. 1 postgres postgres     1398 мая  4 16:59 00000021.history
+[postgres@mph-r-pg01n1 backup]$
+```
+
+### 5. Настроено еженочное резервное копирование кластера СУБД в `/backup/basebackup_archive`
+
+Пример на первом сервере:
+
+```shell
+[postgres@mph-r-pg01n1 ~]$ pwd
+/var/lib/pgsql
+[postgres@mph-r-pg01n1 ~]$ cat scripts/basebackup.sh
+#!/usr/bin/bash
+# скрипт для выполнения резервной копии кластера СУБД
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=postgres
+BACKUP_DIR=/backup/basebackup_archive
+BACKUP_USER=backup
+
+# в учебных целях для имитации забора резервной копии в хранилище резервных копий
+# перед созданием резервной копии удаляем содержимое целевой папки,
+# имитируя забор РК
+rm -rf $BACKUP_DIR/*
+
+echo "$(date) - запущен pg_basebackup"
+/usr/pgsql-18/bin/pg_basebackup \
+    --pgdata="$BACKUP_DIR" \
+    --format=tar \
+    --wal-method=stream \
+    --dbname="host=$DB_HOST port=$DB_PORT user=$BACKUP_USER dbname=$DB_NAME" \
+    --no-password \
+    --verbose && \
+    echo "$(date) - выполнен pg_basebackup" || echo "$(date) - выполнено неуспешно"
+
+[postgres@mph-r-pg01n1 ~]$ crontab -l
+# Полное резервное копирование скриптом ежедневно в 3 часа ночи
+0 3 * * * /var/lib/pgsql/scripts/basebackup.sh >> /log/basebackup.log 2>&1
+[postgres@mph-r-pg01n1 ~]$
+```
