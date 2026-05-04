@@ -1,15 +1,19 @@
 # Базовая лотерея API (Java)
 
-Короткая версия документации.  
-Полная документация: `docs/README_DETAILED.md`.
-
 ## Что это
 
-REST API лотереи на чистом Java (без веб-фреймворков) с:
+REST API первого сценария лотереи на чистом Java (без веб-фреймворков) с:
 - JWT-аутентификацией;
 - ролями `ADMIN` и `USER`;
 - PostgreSQL;
 - Docker-запуском.
+
+## Документация
+
+- Полная документация: [здесь](docs/README.md);
+- Архитектура отказоустойчивого High Availability кластера СУБД PostgreSQL под управлением Patroni, развернутая в процессе работы над приложением (Подстречный А.В.): [здесь](docs/README_DBA.md)
+
+Если СУБД развернута отдельно от приложения, воспользуйтесь конфигурацией из файла: `docker-compose-app-only.yml`. 
 
 ## Быстрый старт (Docker)
 
@@ -41,3 +45,27 @@ curl http://localhost:3000/health
 - `GET /tickets/check?ticketId={ticketId}`
 - `GET /health`
 
+## Структура проекта
+
+```
+lottery
+├── Dockerfile
+├── README.md
+├── docker-compose-example.yml      # запуск только приложения. Необходимо задать строку подключения к БД.
+├── docker-compose.yml              # запуск приложения и СУБД PostgreSQL в Docker Compose
+├── docs
+│   ├── README.md
+│   └── README_DBA.md
+├── pom.xml
+└── src
+    └── main
+        └── java
+            └── lottery
+                ├── Main.java
+                ├── auth
+                ├── config
+                ├── db
+                ├── handler
+                ├── service
+                └── util
+```
