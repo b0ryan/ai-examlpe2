@@ -16,11 +16,57 @@
 - Java 17+
 - Maven
 - `com.sun.net.httpserver.HttpServer`
-- PostgreSQL
+- PostgreSQL 18.3 в отказоустойчивом высокодоступном исполнении (`Patroni 4.1.0`, `etcd 3.6.6`, `vip-manager 4.0.0`)
 - JWT (`java-jwt`)
 - BCrypt
 - Jackson
 - Docker / Docker Compose
+
+### 2.1) Архитектура проекта 
+
+Подробнее про настройку кластера СУБД и etcd - [здесь](./README_DBA.md)
+
+#### Аппаратная архитектура:
+
+Сервера etcd (`pc-r-etcd01n1`, `pc-r-etcd01n2`, `pc-r-etcd01n3`):
+
+- ОС: RED OS 8.0.2 Standard
+- CPU: 4
+- RAM: 8 Gb
+
+Штатное состояние кластера etcd:
+
+```shell
+[avpodstrechnyy@pc-r-etcd01n1 ~]$ etcdctl endpoint status --endpoints=pc-r-etcd01n1:2379,pc-r-etcd01n2:2379,pc-r-etcd01n3:2379 -w table
++--------------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
+|      ENDPOINT      |        ID        | VERSION | STORAGE VERSION | DB SIZE | IN USE | PERCENTAGE NOT IN USE | QUOTA  | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS | DOWNGRADE TARGET VERSION | DOWNGRADE ENABLED |
++--------------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
+| pc-r-etcd01n1:2379 | c46088e26b9ccf0e |   3.6.6 |           3.6.0 |   74 kB |  53 kB |                   28% | 6.4 GB |     false |      false |        16 |       1055 |               1055 |        |                          |             false |
+| pc-r-etcd01n2:2379 | ea7cd59d95d42112 |   3.6.6 |           3.6.0 |   74 kB |  53 kB |                   28% | 6.4 GB |      true |      false |        16 |       1055 |               1055 |        |                          |             false |
+| pc-r-etcd01n3:2379 | cfcc2282f5c99045 |   3.6.6 |           3.6.0 |   74 kB |  53 kB |                   28% | 6.4 GB |     false |      false |        16 |       1055 |               1055 |        |                          |             false |
++--------------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
+[avpodstrechnyy@pc-r-etcd01n1 ~]$
+```
+
+Сервера СУБД PostgreSQL 18.3 (`mph-r-pg01n1` Leader, `mph-r-pg01n2` Sync Standby, `mph-r-pg01n3` nosync Replica):
+
+- ОС: RED OS 8.0.2 Standard
+- CPU: 6
+- RAM: 8 Gb
+
+Штатное состояние кластера PostgreSQL:
+
+```shell
+[postgres@mph-r-pg01n1 ~]$ patronictl list
++ Cluster: mph-r-pg01v1 (7634647009376491578) -----------+----+-------------+-----+------------+-----+--------------+
+| Member       | Host         | Role         | State     | TL | Receive LSN | Lag | Replay LSN | Lag | Tags         |
++--------------+--------------+--------------+-----------+----+-------------+-----+------------+-----+--------------+
+| mph-r-pg01n1 | mph-r-pg01n1 | Leader       | running   | 33 |             |     |            |     |              |
+| mph-r-pg01n2 | mph-r-pg01n2 | Sync Standby | streaming | 33 |  0/50000148 |   0 | 0/50000148 |   0 |              |
+| mph-r-pg01n3 | mph-r-pg01n3 | Replica      | streaming | 33 |  0/50000148 |   0 | 0/50000148 |   0 | nosync: true |
++--------------+--------------+--------------+-----------+----+-------------+-----+------------+-----+--------------+
+[postgres@mph-r-pg01n1 ~]$
+```
 
 ## 3) Структура проекта
 

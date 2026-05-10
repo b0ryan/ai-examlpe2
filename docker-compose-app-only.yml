@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: lottery_app
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: jdbc:postgresql://mph-r-pg01v1.ola.local:5432/lottery?user=lotteryowner&password=admin
+      JWT_SECRET: super-secret-key
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+    command: sh -c "java -jar app.jar"
